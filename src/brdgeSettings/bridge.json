@@ -1,0 +1,72 @@
+{
+  "theBridgeClient": [{
+    
+    "userListBridge": {     
+      "connectionMethod": "REST",
+      "connectionMethodType": "POST",
+      "requestStructure": ["userId","includeDetails"],
+      "headers": {        
+        "Content-Type": "application/json"
+      },
+      "responseType": "JSON",
+      "responseStructure": [
+        "id",
+        "name",
+        "company",
+        "username",
+        "email",
+        "address",
+        "zip",
+        "state",
+        "country",
+        "phone",
+        "photo"        
+      ],
+      "apiEndpoint": "https://fake-json-api.mock.beeceptor.com/users",
+      "callPriority": "High",
+      "cacheSettings": {
+        "cacheEnabled": true,
+        "cacheDuration": "24h"
+      },
+      "retrySettings": {
+        "retry": "active",
+        "retryCount": 3,
+        "retryDelay": 6000
+      }
+    }
+  },
+{
+    
+    "userLogBridge": {     
+      "connectionMethod": "REST",
+      "connectionMethodType": "GET",
+      "RequestStructure": "NULL",
+      "responseType": "JSON",
+      "responseStructure": [
+        "id",
+        "name",
+        "company",
+        "username",
+        "email",
+        "address",
+        "zip",
+        "state",
+        "country",
+        "phone",
+        "photo"
+      ],
+      "apiEndpoint": "https://cantfindme.com/users",
+      "callPriority": "High",
+      "cacheSettings": {
+        "cacheEnabled": true,
+        "cacheDuration": "24h"
+      },
+      "retrySettings": {
+        "retry": "active",
+        "retryCount": 3,
+        "retryDelay": 1000
+      }
+    }
+  }
+]
+}
