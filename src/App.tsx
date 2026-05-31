@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react';
-import {theBridge, getBridgeSettings} from './theBridge';
+import {theBridge} from './theBridge';
 
 function App() {
   const [responseData, setResponseData] = useState<any>(null);
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const bridgeSettings:any = getBridgeSettings('userListBridge');
+    const fetchData = async () => {     
       const requestParams = {
         userId: 123,
         includeDetails: true,
+        seconField: 'test',
+        thridField: 'test2'
       };
-      const data = await theBridge(bridgeSettings, requestParams);
+      const requestBody = {
+        userId: 123,
+        includeDetails: true,
+        seconField: 'test',
+        thridField: 'test2'
+      };
+      const data = await theBridge('userListBridge', requestParams, requestBody);
       console.log('Data received from theBridge:', data);
       setResponseData(data);
     };
