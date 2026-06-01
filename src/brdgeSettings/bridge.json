@@ -9,7 +9,7 @@
       "headers": {        
         "Content-Type": "application/json"
       },
-      "responseType": "JSON",
+      "responseType": "application/json",
       "responseStructure": [
         "id",
         "name",
@@ -21,7 +21,8 @@
         "state",
         "country",
         "phone",
-        "photo"        
+        "photo",
+        "someOtherFields"        
       ],
       "apiEndpoint": "https://fake-json-api.mock.beeceptor.com/users",
       "callPriority": "Medium",

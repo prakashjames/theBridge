@@ -1,8 +1,8 @@
 import bridgeSettingsAll from '../brdgeSettings/bridge.json';
 import { getBridgeSettings } from './lib/common';
 import { validateRequest, validateResponse } from './lib/validateData';
-import { bridgeRestCallGet, bridgeRestCallPost, bridgeRestCallPut, bridgeRestCallPatch, bridgeRestCallDelete, restGet, restPost } from './lib/restFunctions';
-
+import {restGetRouting, restPostRouting } from './lib/REST/restRouting';
+import { bridgeTraceAndTrack } from './lib/traceAndTrack';
 
 
 export async function theBridge(bridgeName:string, requestParams: any = null, requestBody: any = null) {  
@@ -29,30 +29,31 @@ let responseData:any;
 if(connectionMethod === 'REST' )
 {
   if(bridgeSettings?.connectionMethodType === 'GET') {        
-    responseData = await restGet(bridgeName, bridgeSettings, requestParams);
+    responseData = await restGetRouting(bridgeName, bridgeSettings, requestParams);
   }
   else if(bridgeSettings?.connectionMethodType === 'POST') {
-    responseData = await restPost(bridgeName, bridgeSettings, requestParams, requestBody);
+    responseData = await restPostRouting(bridgeName, bridgeSettings, requestParams, requestBody);
   }
   else if(bridgeSettings?.connectionMethodType === 'PUT') {
-    responseData = await bridgeRestCallPut(bridgeSettings, requestParams);
+    //responseData = await bridgeRestCallPut(bridgeSettings, requestParams);
   }
   else if(bridgeSettings?.connectionMethodType === 'PATCH') {
-    responseData = await bridgeRestCallPatch(bridgeSettings, requestParams);
+   // responseData = await bridgeRestCallPatch(bridgeSettings, requestParams);
   }
   else if(bridgeSettings?.connectionMethodType === 'DELETE') {
-    responseData = await bridgeRestCallDelete(bridgeSettings, requestParams);
+   // responseData = await bridgeRestCallDelete(bridgeSettings, requestParams);
   }
 }
 // ---- 8. validate response structure
 let validResponse:boolean = true;
 
-if(bridgeSettings?.connectionMethodType === 'GET' || bridgeSettings?.connectionMethodType === 'POST')
+if((bridgeSettings?.connectionMethodType === 'GET' || bridgeSettings?.connectionMethodType === 'POST') && bridgeSettings?.responseType?.toLowerCase() === 'application/json')
 {
   validResponse = validateResponse(responseData, bridgeSettings?.responseStructure);
   if(!validResponse)
   {
     console.log('Bridge Error: Invalid response structure. Expected fields are missing.');
+    await bridgeTraceAndTrack(bridgeName, 'validateResponseError', 0,0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
     return;
   }
   else
@@ -66,6 +67,7 @@ else
   if(!responseData)
   {
     console.log('Bridge Error: No response data received.');
+    await bridgeTraceAndTrack(bridgeName, 'Error', 0,0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
     return;
   }
 }

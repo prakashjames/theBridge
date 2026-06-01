@@ -1,74 +1,4 @@
-import { bridgeTraceAndTrack } from './traceAndTrack';
-
-
-  export async function restPost(bridgeName:string, bridgeSettings: any, requestParams: any, requestBody: any)
-    {
-      let responseData:any;
-    //check call pririty
-    if(bridgeSettings?.callPriority === 'High') {
-      // Handle high-priority POST call
-      responseData = await bridgeRestCallPost(bridgeName, bridgeSettings, requestParams, requestBody);
-    }
-    if(bridgeSettings?.callPriority === 'Medium') {
-      // Handle medium-priority POST call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Delay for 2 seconds before making the call
-      responseData = await bridgeRestCallPost(bridgeName, bridgeSettings, requestParams, requestBody);
-    }
-    if(bridgeSettings?.callPriority === 'Low') {
-      // Handle low-priority POST call
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Delay for 5 seconds before making the call
-      responseData = await bridgeRestCallPost(bridgeName, bridgeSettings, requestParams, requestBody);
-    }
-        
-    
-    
-    if(!responseData && bridgeSettings?.retrySettings?.retry === 'active')    {
-      console.log(`Bridge Info: Retrying POST API call. Attempt ${bridgeSettings?.retrySettings?.retryCount}`);
-      let retryCount = 0;
-      while(retryCount < bridgeSettings?.retrySettings?.retryCount && !responseData) {
-        //console.log('bridgeRestCallGet retrying... Attempt:', retryCount + 1);        
-        // Wait for bridgeSettings?.retrySettings?.retryDelay before making the call
-        await new Promise(resolve => setTimeout(resolve, bridgeSettings?.retrySettings?.retryDelay));        
-        responseData = await bridgeRestCallGet( bridgeName, bridgeSettings, requestParams);
-        retryCount++;
-      }
-    }
-      return responseData;
-  }
-export async function restGet(bridgeName:string, bridgeSettings: any, requestParams: any)
-{
-let responseData:any;
-if(bridgeSettings?.callPriority === 'High') {
-      // Handle high-priority GET call
-      responseData = await bridgeRestCallGet(bridgeName, bridgeSettings, requestParams);
-    }
-    if(bridgeSettings?.callPriority === 'Medium') {
-      // Handle medium-priority GET call
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Delay for 2 seconds before making the call
-      responseData = await bridgeRestCallGet(bridgeName, bridgeSettings, requestParams);
-    }
-    if(bridgeSettings?.callPriority === 'Low') {
-      // Handle low-priority GET call
-      await new Promise(resolve => setTimeout(resolve, 5000)); // Delay for 5 seconds before making the call
-      responseData = await bridgeRestCallGet(bridgeName, bridgeSettings, requestParams);
-    }
-    if(!responseData && bridgeSettings?.retrySettings?.retry === 'active')    {
-      console.log(`Bridge Info: Retrying GET API call. Attempt ${bridgeSettings?.retrySettings?.retryCount}`);
-      let retryCount = 0;
-      while(retryCount < bridgeSettings?.retrySettings?.retryCount && !responseData) {
-        //console.log('bridgeRestCallGet retrying... Attempt:', retryCount + 1);        
-        // Wait for bridgeSettings?.retrySettings?.retryDelay before making the call
-        await new Promise(resolve => setTimeout(resolve, bridgeSettings?.retrySettings?.retryDelay));        
-        responseData = await bridgeRestCallGet(bridgeName, bridgeSettings, requestParams);
-        retryCount++;
-      }
-    }
-
-    return responseData;
-}
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
+import { bridgeTraceAndTrack } from '../traceAndTrack';
 // bridgeRestCall - GET //////////////////////////////////////////////////////////////////////////////////////////
 export async function bridgeRestCallGet(bridgeName: string, bridgeSettings: any, requestParams: any)
 {
@@ -112,8 +42,33 @@ export async function bridgeRestCallGet(bridgeName: string, bridgeSettings: any,
         console.error(`API Error: HTTP Status Code ${response.status} - ${response.statusText}`);
         return false;
       }
-      
-      const data = await response.json();
+      const responseType = bridgeSettings?.responseType?.toLowerCase();
+      let data: any;
+
+      switch (responseType) {
+        case 'application/json':
+          data = await response.json();
+          break;
+        case 'application/xml':
+        case 'text/html':
+        case 'text/plain':
+          data = await response.text();
+          break;
+        case 'application/octet-stream':
+          data = await response.arrayBuffer();
+          break;
+        default:
+          const contentType = response.headers.get('content-type')?.toLowerCase();
+          if (contentType?.includes('application/json')) {
+            data = await response.json();
+          } else if (contentType?.includes('text/') || contentType?.includes('xml') || contentType?.includes('html')) {
+            data = await response.text();
+          } else {
+            data = await response.arrayBuffer();
+          }
+          break;
+      }
+
       return data;
     } catch (error: any) {
       
