@@ -114,124 +114,329 @@ const validRequestBody:any = requestBody ? Object.keys(requestBody).reduce((acc:
       body: JSON.stringify(validRequestBody),
     };
     // Make the API call
-     const startTime = performance.now();    
-    return await fetch(url.toString(), requestOptions)
-      .then(response => response.json())
-      .then(async data => {
-       // console.log('API Response:', data);
-        const endTime = performance.now();
-       await bridgeTraceAndTrack(bridgeName, 'Success', 200, endTime - startTime, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
-        return data;
-        // Here you can add code to validate the response structure if needed
-      })
-      .catch(async error => {
+    try {
+      const startTime = Math.round(performance.now());
+      const response = await fetch(url.toString(), requestOptions);
+
+      // collect headers
+      const headersObj: any = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      const endTime = Math.round(performance.now());
+      await bridgeTraceAndTrack(bridgeName, 'Success', response.status, endTime - startTime, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+
+      if (!response.ok) {
+        console.error(`API Error: HTTP Status Code ${response.status} - ${response.statusText}`);
+        return false;
+      }
+
+      const responseType = bridgeSettings?.responseType?.toLowerCase();
+      let data: any;
+
+      switch (responseType) {
+        case 'application/json':
+          data = await response.json();
+          break;
+        case 'application/xml':
+        case 'text/html':
+        case 'text/plain':
+          data = await response.text();
+          break;
+        case 'application/octet-stream':
+          data = await response.arrayBuffer();
+          break;
+        default:
+          const contentType = response.headers.get('content-type')?.toLowerCase();
+          if (contentType?.includes('application/json')) {
+            data = await response.json();
+          } else if (contentType?.includes('text/') || contentType?.includes('xml') || contentType?.includes('html')) {
+            data = await response.text();
+          } else {
+            data = await response.arrayBuffer();
+          }
+          break;
+      }
+
+      return data;
+    } catch (error: any) {
       console.error('Bridge API Network Error:', {
         message: error?.message,
         errorCode: error?.code,
         name: error?.name,
         fullError: error
       });
-      await bridgeTraceAndTrack(bridgeName, 'Error', 0,0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+      await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
       return false;
-      
-      });     
+    }
     }
 
 }
 
 // bridgeRestCall - PUT //////////////////////////////////////////////////////////////////////////////////////////
-export async function bridgeRestCallPut(bridgeSettings: any, requestParams: any)
+// bridgeRestCall - DELETE //////////////////////////////////////////////////////////////////////////////////////////
+export async function bridgeRestCallDelete(bridgeName: string, bridgeSettings: any, requestParams: any, requestBody: any)
+{
+  // for DELETE Type
+  if(bridgeSettings?.connectionMethodType === 'DELETE')
+  {
+     const url = new URL(bridgeSettings?.apiEndpoint);
+     Object.keys(requestParams).forEach(key => {
+  if (bridgeSettings?.requestStructure?.includes(key)) {
+    url.searchParams.append(key, requestParams[key]);
+  }
+});
+    const validRequestBody:any = requestBody ? Object.keys(requestBody).reduce((acc: any, key) => {
+  if (bridgeSettings?.requestBody?.includes(key)) {
+    acc[key] = requestBody[key];
+  }
+  return acc;
+}, {})
+: null;
+    const requestOptions = {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...bridgeSettings?.headers || {},
+      },
+      body: JSON.stringify(validRequestBody),
+    };
+    // Make the API call
+    try {
+      const startTime = Math.round(performance.now());
+      const response = await fetch(url.toString(), requestOptions);
+
+      // collect headers
+      const headersObj: any = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      const endTime = Math.round(performance.now());
+      await bridgeTraceAndTrack(bridgeName, 'Success', response.status, endTime - startTime, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+
+      if (!response.ok) {
+        console.error(`API Error: HTTP Status Code ${response.status} - ${response.statusText}`);
+         await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+        return false;
+      }
+
+      const responseType = bridgeSettings?.responseType?.toLowerCase();
+      let data: any;
+
+      switch (responseType) {
+        case 'application/json':
+          data = await response.json();
+          break;
+        case 'application/xml':
+        case 'text/html':
+        case 'text/plain':
+          data = await response.text();
+          break;
+        case 'application/octet-stream':
+          data = await response.arrayBuffer();
+          break;
+        default:
+          const contentType = response.headers.get('content-type')?.toLowerCase();
+          if (contentType?.includes('application/json')) {
+            data = await response.json();
+          } else if (contentType?.includes('text/') || contentType?.includes('xml') || contentType?.includes('html')) {
+            data = await response.text();
+          } else {
+            data = await response.arrayBuffer();
+          }
+          break;
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Bridge API Network Error:', {
+        message: error?.message,
+        errorCode: error?.code,
+        name: error?.name,
+        fullError: error
+      });
+      await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+      return false;
+    }
+    }
+
+}
+// bridgeRestCall - PUT //////////////////////////////////////////////////////////////////////////////////////////
+export async function bridgeRestCallPut(bridgeName: string, bridgeSettings: any, requestParams: any, requestBody: any)
 {
   // for PUT Type
   if(bridgeSettings?.connectionMethodType === 'PUT')
   {
-    const url = new URL(bridgeSettings?.apiEndpoint);
-    
+     const url = new URL(bridgeSettings?.apiEndpoint);
+     Object.keys(requestParams).forEach(key => {
+  if (bridgeSettings?.requestStructure?.includes(key)) {
+    url.searchParams.append(key, requestParams[key]);
+  }
+});
+    const validRequestBody:any = requestBody ? Object.keys(requestBody).reduce((acc: any, key) => {
+  if (bridgeSettings?.requestBody?.includes(key)) {
+    acc[key] = requestBody[key];
+  }
+  return acc;
+}, {})
+: null;
     const requestOptions = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...bridgeSettings?.headers || {},
       },
-      body: JSON.stringify(requestParams),
+      body: JSON.stringify(validRequestBody),
     };
-    // Make the API call    
-    return await fetch(url.toString(), requestOptions)
-      .then(response => response.json())
-      .then(data => {
-       // console.log('API Response:', data);
-        return data;
-        // Here you can add code to validate the response structure if needed
-      })
-      .catch(error => {
-        console.error('API Error:', error);
-        // Here you can add code to handle errors and implement retry logic if needed
-      });     
+    // Make the API call
+    try {
+      const startTime = Math.round(performance.now());
+      const response = await fetch(url.toString(), requestOptions);
+
+      // collect headers
+      const headersObj: any = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      const endTime = Math.round(performance.now());
+      await bridgeTraceAndTrack(bridgeName, 'Success', response.status, endTime - startTime, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+
+      if (!response.ok) {
+        console.error(`API Error: HTTP Status Code ${response.status} - ${response.statusText}`);
+         await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+        return false;
+      }
+
+      const responseType = bridgeSettings?.responseType?.toLowerCase();
+      let data: any;
+
+      switch (responseType) {
+        case 'application/json':
+          data = await response.json();
+          break;
+        case 'application/xml':
+        case 'text/html':
+        case 'text/plain':
+          data = await response.text();
+          break;
+        case 'application/octet-stream':
+          data = await response.arrayBuffer();
+          break;
+        default:
+          const contentType = response.headers.get('content-type')?.toLowerCase();
+          if (contentType?.includes('application/json')) {
+            data = await response.json();
+          } else if (contentType?.includes('text/') || contentType?.includes('xml') || contentType?.includes('html')) {
+            data = await response.text();
+          } else {
+            data = await response.arrayBuffer();
+          }
+          break;
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Bridge API Network Error:', {
+        message: error?.message,
+        errorCode: error?.code,
+        name: error?.name,
+        fullError: error
+      });
+      await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+      return false;
+    }
     }
 
 }
-
 // bridgeRestCall - PATCH //////////////////////////////////////////////////////////////////////////////////////////
-export async function bridgeRestCallPatch(bridgeSettings: any, requestParams: any)
+export async function bridgeRestCallPatch(bridgeName: string, bridgeSettings: any, requestParams: any, requestBody: any)
 {
   // for PATCH Type
   if(bridgeSettings?.connectionMethodType === 'PATCH')
   {
-    const url = new URL(bridgeSettings?.apiEndpoint);
-    
+     const url = new URL(bridgeSettings?.apiEndpoint);
+     Object.keys(requestParams).forEach(key => {
+  if (bridgeSettings?.requestStructure?.includes(key)) {
+    url.searchParams.append(key, requestParams[key]);
+  }
+});
+    const validRequestBody:any = requestBody ? Object.keys(requestBody).reduce((acc: any, key) => {
+  if (bridgeSettings?.requestBody?.includes(key)) {
+    acc[key] = requestBody[key];
+  }
+  return acc;
+}, {})
+: null;
     const requestOptions = {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
         ...bridgeSettings?.headers || {},
       },
-      body: JSON.stringify(requestParams),
+      body: JSON.stringify(validRequestBody),
     };
-    // Make the API call    
-    return await fetch(url.toString(), requestOptions)
-      .then(response => response.json())
-      .then(data => {
-       // console.log('API Response:', data);
-        return data;
-        // Here you can add code to validate the response structure if needed
-      })
-      .catch(error => {
-        console.error('API Error:', error);
-        // Here you can add code to handle errors and implement retry logic if needed
-      });     
+    // Make the API call
+    try {
+      const startTime = Math.round(performance.now());
+      const response = await fetch(url.toString(), requestOptions);
+
+      // collect headers
+      const headersObj: any = {};
+      response.headers.forEach((value, key) => {
+        headersObj[key] = value;
+      });
+
+      const endTime = Math.round(performance.now());
+      await bridgeTraceAndTrack(bridgeName, 'Success', response.status, endTime - startTime, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+
+      if (!response.ok) {
+        console.error(`API Error: HTTP Status Code ${response.status} - ${response.statusText}`);
+         await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+        return false;
+      }
+
+      const responseType = bridgeSettings?.responseType?.toLowerCase();
+      let data: any;
+
+      switch (responseType) {
+        case 'application/json':
+          data = await response.json();
+          break;
+        case 'application/xml':
+        case 'text/html':
+        case 'text/plain':
+          data = await response.text();
+          break;
+        case 'application/octet-stream':
+          data = await response.arrayBuffer();
+          break;
+        default:
+          const contentType = response.headers.get('content-type')?.toLowerCase();
+          if (contentType?.includes('application/json')) {
+            data = await response.json();
+          } else if (contentType?.includes('text/') || contentType?.includes('xml') || contentType?.includes('html')) {
+            data = await response.text();
+          } else {
+            data = await response.arrayBuffer();
+          }
+          break;
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('Bridge API Network Error:', {
+        message: error?.message,
+        errorCode: error?.code,
+        name: error?.name,
+        fullError: error
+      });
+      await bridgeTraceAndTrack(bridgeName, 'Error', 0, 0, new Date(), JSON.stringify(requestParams), bridgeSettings?.traceAndTrack );
+      return false;
+    }
     }
 
 }
 
-// bridgeRestCall - DELETE //////////////////////////////////////////////////////////////////////////////////////////
-export async function bridgeRestCallDelete(bridgeSettings: any, requestParams: any)
-{
-  // for DELETE Type
-  if(bridgeSettings?.connectionMethodType === 'DELETE')
-  {
-    const url = new URL(bridgeSettings?.apiEndpoint);
-    
-    // Build query string from requestParams if not null
-    if (requestParams && typeof requestParams === 'object') {
-      Object.keys(requestParams).forEach(key => url.searchParams.append(key, requestParams[key]));
-    }
-    
-    const requestOptions = {
-      method: 'DELETE',
-      headers: bridgeSettings?.headers || {},
-    };
-    // Make the API call    
-    return await fetch(url.toString(), requestOptions)
-      .then(response => response.json())
-      .then(data => {
-       // console.log('API Response:', data);
-        return data;
-        // Here you can add code to validate the response structure if needed
-      })
-      .catch(error => {
-        console.error('API Error:', error);
-        // Here you can add code to handle errors and implement retry logic if needed
-      });     
-    }
-
-}
